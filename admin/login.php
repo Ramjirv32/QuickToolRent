@@ -3,8 +3,8 @@ session_start();
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 
-if (!empty($_SESSION['user_id']) && ($_SESSION['user_role'] ?? '') === 'admin') {
-  header('Location: /admin/index.php');
+if (!empty($_SESSION['user']) && ($_SESSION['user']['role'] ?? '') === 'admin') {
+  header('Location: dashboard.php');
   exit;
 }
 
@@ -32,10 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
 
       if ($ok) {
-        $_SESSION['user_id'] = (int)$user['id'];
-        $_SESSION['user_name'] = $user['name'];
-        $_SESSION['user_role'] = $user['role'];
-        header('Location: /admin/index.php');
+        $_SESSION['user'] = [
+          'id' => (int)$user['id'],
+          'name' => $user['name'],
+          'email' => $user['email'],
+          'role' => $user['role']
+        ];
+        header('Location: dashboard.php');
         exit;
       }
     }
