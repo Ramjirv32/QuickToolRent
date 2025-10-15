@@ -1,8 +1,8 @@
 <?php
-require_once __DIR__ . '/includes/config.php';
-require_once __DIR__ . '/includes/db.php';
-require_once __DIR__ . '/includes/csrf.php';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/db.php';
+require_once __DIR__ . '/../../includes/csrf.php';
+require_once __DIR__ . '/../../includes/header.php';
 
 $pdo = db();
 $owners = $pdo->query("SELECT id, name, email FROM users WHERE role = 'owner' ORDER BY name ASC")->fetchAll();
@@ -11,7 +11,7 @@ $owners = $pdo->query("SELECT id, name, email FROM users WHERE role = 'owner' OR
   <h1 class="text-xl font-semibold">Add a Product</h1>
   <p class="text-gray-600 mt-1">Set your prices within our fair limits (max $<?php echo number_format(MAX_PRICE_PER_HOUR,2); ?> per hour, $<?php echo number_format(MAX_PRICE_PER_DAY,2); ?> per day).</p>
 
-  <form action="/handle-add-product.php" method="post" class="mt-6 space-y-4 bg-white p-5 rounded border">
+  <form action="/controllers/handle-add-product.php" method="post" class="mt-6 space-y-4 bg-white p-5 rounded border">
     <?php echo csrf_field(); ?>
     <div>
       <label class="block text-sm font-medium mb-1">Owner</label>
@@ -49,4 +49,4 @@ $owners = $pdo->query("SELECT id, name, email FROM users WHERE role = 'owner' OR
     <button class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Save Product</button>
   </form>
 </section>
-<?php require_once __DIR__ . '/includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../../includes/footer.php'; ?>

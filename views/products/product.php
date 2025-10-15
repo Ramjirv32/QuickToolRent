@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/includes/header.php';
-require_once __DIR__ . '/includes/db.php';
-require_once __DIR__ . '/includes/helpers.php';
+require_once __DIR__ . '/../../includes/header.php';
+require_once __DIR__ . '/../../includes/db.php';
+require_once __DIR__ . '/../../includes/helpers.php';
 
 $id = (int)($_GET['id'] ?? 0);
 $stmt = db()->prepare("SELECT p.*, u.name AS owner_name FROM products p JOIN users u ON u.id = p.owner_id WHERE p.id = ? LIMIT 1");
@@ -34,4 +34,4 @@ $product = $stmt->fetch();
     </div>
   <?php endif; ?>
 </section>
-<?php require_once __DIR__ . '/includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../../includes/footer.php'; ?>

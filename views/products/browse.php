@@ -1,5 +1,5 @@
-<?php require_once __DIR__.'/includes/header.php'; ?>
-<?php require_once __DIR__.'/includes/helpers.php'; ?>
+<?php require_once __DIR__.'/../../includes/header.php'; ?>
+<?php require_once __DIR__.'/../../includes/helpers.php'; ?>
 <section class="max-w-6xl mx-auto px-4 py-10">
   <h1 class="text-2xl font-semibold mb-4">Browse Tools</h1>
   <form method="get" class="mb-6 grid gap-3 md:grid-cols-6">
@@ -14,7 +14,7 @@
   </form>
 
   <?php
-    require_once __DIR__.'/includes/db.php';
+    require_once __DIR__.'/../../includes/db.php';
     $q = trim($_GET['q'] ?? '');
     $sort = $_GET['sort'] ?? '';
     $sql = "SELECT id, title, image_url, price_per_hour FROM products WHERE is_available = 1";
@@ -48,4 +48,4 @@
     <?php endif; ?>
   </div>
 </section>
-<?php require_once __DIR__.'/includes/footer.php'; ?>
+<?php require_once __DIR__.'/../../includes/footer.php'; ?>
