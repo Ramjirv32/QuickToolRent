@@ -16,271 +16,288 @@ $totalProducts = (int)$pdo->query("SELECT COUNT(*) AS c FROM products")->fetch()
 $totalRentals = (int)$pdo->query("SELECT COUNT(*) AS c FROM rentals")->fetch()['c'];
 $activeRentals = (int)$pdo->query("SELECT COUNT(*) AS c FROM rentals WHERE status IN ('paid', 'delivered')")->fetch()['c'];
 $totalRevenue = (float)$pdo->query("SELECT COALESCE(SUM(total_amount),0) AS s FROM rentals WHERE status IN ('paid','delivered','completed')")->fetch()['s'];
-
-// Recent activity
-$recentUsers = $pdo->query("SELECT * FROM users ORDER BY created_at DESC LIMIT 5")->fetchAll();
-$recentRentals = $pdo->query("
-  SELECT r.*, u.name as user_name, p.name as product_name 
-  FROM rentals r 
-  JOIN users u ON u.id = r.borrower_id 
-  JOIN products p ON p.id = r.product_id 
-  ORDER BY r.created_at DESC 
-  LIMIT 5
-")->fetchAll();
+$todayRevenue = (float)$pdo->query("SELECT COALESCE(SUM(total_amount),0) AS s FROM rentals WHERE DATE(created_at) = CURDATE() AND status IN ('paid','delivered','completed')")->fetch()['s'];
 
 // Products by category
 $categoryStats = $pdo->query("
-  SELECT category, COUNT(*) as count, 
-         SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as available_count
+  SELECT category, COUNT(*) as count
   FROM products 
   GROUP BY category 
   ORDER BY count DESC
+  LIMIT 5
 ")->fetchAll();
 
-include __DIR__ . '/../includes/header.php';
+// Top products by revenue
+$topProducts = $pdo->query("
+  SELECT p.name, COALESCE(SUM(r.total_amount), 0) as revenue
+  FROM products p
+  LEFT JOIN rentals r ON r.product_id = p.id AND r.status IN ('paid','delivered','completed')
+  GROUP BY p.id, p.name
+  ORDER BY revenue DESC
+  LIMIT 5
+")->fetchAll();
+
+$adminName = $_SESSION['user']['name'] ?? 'Admin';
 ?>
-
-<style>
-.admin-container {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-.stat-card {
-  transition: all 0.3s ease;
-}
-.stat-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-</style>
-
-<div class="admin-container">
-  <!-- Header -->
-  <section class="mb-12 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 rounded-2xl shadow-2xl p-12 text-white">
-    <div class="max-w-6xl mx-auto">
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h1 class="text-5xl font-extrabold mb-4">
-            <i class="fas fa-shield-alt mr-3"></i>Admin Dashboard
-          </h1>
-          <p class="text-xl text-white/90">Complete control and management of QuickToolRent</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - <?php echo APP_NAME; ?></title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .sidebar-link { transition: all 0.2s; }
+    .sidebar-link:hover { background: rgba(255,255,255,0.1); transform: translateX(5px); }
+    .sidebar-link.active { background: rgba(255,255,255,0.15); border-left: 4px solid #fff; }
+  </style>
+</head>
+<body class="bg-gray-100">
+  
+<!-- Sidebar Layout -->
+<div class="flex min-h-screen">
+  
+  <!-- Sidebar -->
+  <aside class="w-64 bg-gradient-to-b from-slate-800 to-slate-900 text-white flex-shrink-0 hidden lg:block">
+    <div class="p-6">
+      <div class="flex items-center space-x-3 mb-8">
+        <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
+          <i class="fas fa-tools text-white text-xl"></i>
         </div>
-        <a href="<?= BASE_URL ?: '/' ?>admin/logout.php" class="px-6 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl font-bold transition-all">
-          <i class="fas fa-sign-out-alt mr-2"></i>Logout
-        </a>
+        <div>
+          <h1 class="text-xl font-bold"><?php echo APP_NAME; ?></h1>
+          <p class="text-xs text-gray-400">Admin Panel</p>
+        </div>
       </div>
       
-      <!-- Quick Stats -->
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8">
-        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-          <div class="text-3xl font-bold mb-1"><?= $totalUsers ?></div>
-          <div class="text-sm text-white/80">Total Users</div>
-        </div>
-        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-          <div class="text-3xl font-bold mb-1"><?= $totalProducts ?></div>
-          <div class="text-sm text-white/80">Products</div>
-        </div>
-        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-          <div class="text-3xl font-bold mb-1"><?= $totalRentals ?></div>
-          <div class="text-sm text-white/80">Total Rentals</div>
-        </div>
-        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-          <div class="text-3xl font-bold mb-1"><?= $activeRentals ?></div>
-          <div class="text-sm text-white/80">Active Now</div>
-        </div>
-        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-          <div class="text-3xl font-bold mb-1">₹<?= number_format($totalRevenue, 0) ?></div>
-          <div class="text-sm text-white/80">Revenue</div>
+      <div class="mb-6">
+        <h3 class="text-xs uppercase text-gray-400 font-semibold mb-3">Luxor Admin</h3>
+        <div class="flex items-center space-x-3 p-3 bg-white/10 rounded-lg">
+          <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+            <i class="fas fa-user text-white"></i>
+          </div>
+          <div class="flex-1">
+            <p class="font-semibold text-sm"><?= htmlspecialchars($adminName) ?></p>
+            <p class="text-xs text-gray-400">Super Admin</p>
+          </div>
         </div>
       </div>
+      
+      <nav class="space-y-1">
+        <a href="<?= BASE_URL ?: '/' ?>admin/dashboard.php" class="sidebar-link active flex items-center space-x-3 px-4 py-3 rounded-lg">
+          <i class="fas fa-home w-5"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="<?= BASE_URL ?: '/' ?>admin/manage-products.php" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg">
+          <i class="fas fa-box w-5"></i>
+          <span>Products</span>
+        </a>
+        <a href="<?= BASE_URL ?: '/' ?>admin/manage-rentals.php" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg">
+          <i class="fas fa-calendar-check w-5"></i>
+          <span>Rentals</span>
+        </a>
+        <a href="<?= BASE_URL ?: '/' ?>admin/manage-users.php" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg">
+          <i class="fas fa-users w-5"></i>
+          <span>Users</span>
+        </a>
+        <a href="<?= BASE_URL ?: '/' ?>index.php" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg">
+          <i class="fas fa-globe w-5"></i>
+          <span>View Website</span>
+        </a>
+        <a href="<?= BASE_URL ?: '/' ?>logout.php" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-red-300 hover:text-red-200">
+          <i class="fas fa-sign-out-alt w-5"></i>
+          <span>Logout</span>
+        </a>
+      </nav>
     </div>
-  </section>
-
-  <!-- CRUD Management Cards -->
-  <section class="mb-12">
-    <h2 class="text-3xl font-bold text-gray-900 mb-6">
-      <i class="fas fa-database text-indigo-600 mr-3"></i>Database Management
-    </h2>
+  </aside>
+  
+  <!-- Main Content -->
+  <main class="flex-1 overflow-x-hidden">
+    <!-- Top Bar -->
+    <header class="bg-white shadow-sm border-b border-gray-200 px-8 py-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-2xl font-bold text-orange-600">Welcome, <?= htmlspecialchars($adminName) ?></h2>
+          <p class="text-sm text-gray-600">Dashboard Overview</p>
+        </div>
+        <button class="px-6 py-2 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-all font-semibold text-gray-700">
+          <i class="fas fa-sync-alt mr-2"></i>Refresh Dashboard
+        </button>
+      </div>
+    </header>
     
-    <div class="grid md:grid-cols-3 gap-6">
-      <!-- Users Management -->
-      <a href="<?= BASE_URL ?: '/' ?>admin/manage-users.php" class="stat-card block bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden border-2 border-blue-200 group">
-        <div class="bg-gradient-to-br from-blue-500 to-indigo-600 p-6 text-white">
+    <!-- Dashboard Content -->
+    <div class="p-8">
+      
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Total Products -->
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
           <div class="flex items-center justify-between mb-4">
-            <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-              <i class="fas fa-users text-3xl"></i>
+            <div>
+              <p class="text-sm font-semibold text-blue-600 uppercase">Total Products</p>
+              <h3 class="text-4xl font-bold text-blue-900 mt-2"><?= $totalProducts ?></h3>
             </div>
-            <div class="text-right">
-              <div class="text-4xl font-bold"><?= $totalUsers ?></div>
-              <div class="text-sm text-blue-100">Users</div>
+            <div class="w-14 h-14 bg-blue-500 rounded-xl flex items-center justify-center">
+              <i class="fas fa-box text-white text-2xl"></i>
             </div>
           </div>
+          <a href="<?= BASE_URL ?: '/' ?>admin/manage-products.php" class="text-sm text-blue-600 hover:text-blue-700 font-semibold">
+            View all products →
+          </a>
         </div>
-        <div class="p-6">
-          <h3 class="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-            Manage Users
-          </h3>
-          <p class="text-gray-600 text-sm mb-4">Create, view, edit, and delete user accounts</p>
-          <div class="flex items-center text-blue-600 font-semibold">
-            <span>Open CRUD Panel</span>
-            <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
-          </div>
-        </div>
-      </a>
-
-      <!-- Products Management -->
-      <a href="<?= BASE_URL ?: '/' ?>admin/manage-products.php" class="stat-card block bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden border-2 border-orange-200 group">
-        <div class="bg-gradient-to-br from-orange-500 to-red-600 p-6 text-white">
+        
+        <!-- Total Rentals -->
+        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
           <div class="flex items-center justify-between mb-4">
-            <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-              <i class="fas fa-box text-3xl"></i>
+            <div>
+              <p class="text-sm font-semibold text-green-600 uppercase">Total Rentals</p>
+              <h3 class="text-4xl font-bold text-green-900 mt-2"><?= $totalRentals ?></h3>
             </div>
-            <div class="text-right">
-              <div class="text-4xl font-bold"><?= $totalProducts ?></div>
-              <div class="text-sm text-orange-100">Products</div>
+            <div class="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center">
+              <i class="fas fa-calendar-check text-white text-2xl"></i>
             </div>
           </div>
+          <a href="<?= BASE_URL ?: '/' ?>admin/manage-rentals.php" class="text-sm text-green-600 hover:text-green-700 font-semibold">
+            Manage rentals →
+          </a>
         </div>
-        <div class="p-6">
-          <h3 class="text-xl font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">
-            Manage Products
-          </h3>
-          <p class="text-gray-600 text-sm mb-4">Create, view, edit, and delete product listings</p>
-          <div class="flex items-center text-orange-600 font-semibold">
-            <span>Open CRUD Panel</span>
-            <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
-          </div>
-        </div>
-      </a>
-
-      <!-- Rentals Management -->
-      <a href="<?= BASE_URL ?: '/' ?>admin/manage-rentals.php" class="stat-card block bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden border-2 border-green-200 group">
-        <div class="bg-gradient-to-br from-green-500 to-emerald-600 p-6 text-white">
+        
+        <!-- Total Users -->
+        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
           <div class="flex items-center justify-between mb-4">
-            <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-              <i class="fas fa-shopping-cart text-3xl"></i>
+            <div>
+              <p class="text-sm font-semibold text-purple-600 uppercase">Total Users</p>
+              <h3 class="text-4xl font-bold text-purple-900 mt-2"><?= $totalUsers ?></h3>
             </div>
-            <div class="text-right">
-              <div class="text-4xl font-bold"><?= $totalRentals ?></div>
-              <div class="text-sm text-green-100">Rentals</div>
+            <div class="w-14 h-14 bg-purple-500 rounded-xl flex items-center justify-center">
+              <i class="fas fa-users text-white text-2xl"></i>
             </div>
           </div>
+          <a href="<?= BASE_URL ?: '/' ?>admin/manage-users.php" class="text-sm text-purple-600 hover:text-purple-700 font-semibold">
+            View all users →
+          </a>
         </div>
-        <div class="p-6">
-          <h3 class="text-xl font-bold text-gray-900 mb-2 group-hover:text-green-600 transition-colors">
-            Manage Rentals
-          </h3>
-          <p class="text-gray-600 text-sm mb-4">View, edit, and manage all rental transactions</p>
-          <div class="flex items-center text-green-600 font-semibold">
-            <span>Open CRUD Panel</span>
-            <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
+        
+        <!-- Revenue Today -->
+        <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 border border-yellow-200">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <p class="text-sm font-semibold text-yellow-600 uppercase">Revenue (Today)</p>
+              <h3 class="text-4xl font-bold text-yellow-900 mt-2">₹<?= number_format($todayRevenue, 0) ?></h3>
+            </div>
+            <div class="w-14 h-14 bg-yellow-500 rounded-xl flex items-center justify-center">
+              <i class="fas fa-rupee-sign text-white text-2xl"></i>
+            </div>
           </div>
+          <select class="w-full px-3 py-2 bg-white border border-yellow-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+            <option>Today</option>
+            <option>This Week</option>
+            <option>This Month</option>
+          </select>
         </div>
-      </a>
-    </div>
-  </section>
-
-  <!-- Recent Activity -->
-  <div class="grid lg:grid-cols-2 gap-6 mb-12">
-    <!-- Recent Users -->
-    <div class="bg-white rounded-2xl shadow-lg p-6">
-      <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
-        <i class="fas fa-user-plus text-blue-600 mr-3"></i>Recent Users
-      </h3>
-      <div class="space-y-3">
-        <?php foreach ($recentUsers as $user): ?>
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-            <div class="flex items-center">
-              <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                <i class="fas fa-user text-blue-600"></i>
-              </div>
-              <div>
-                <div class="font-semibold text-gray-900"><?= htmlspecialchars($user['name']) ?></div>
-                <div class="text-sm text-gray-500"><?= htmlspecialchars($user['email']) ?></div>
-              </div>
-            </div>
-            <div class="text-right">
-              <span class="inline-block px-2 py-1 bg-<?= $user['role'] === 'admin' ? 'red' : ($user['role'] === 'owner' ? 'purple' : 'blue') ?>-100 text-<?= $user['role'] === 'admin' ? 'red' : ($user['role'] === 'owner' ? 'purple' : 'blue') ?>-800 text-xs font-semibold rounded-full">
-                <?= strtoupper(htmlspecialchars($user['role'])) ?>
-              </span>
-              <div class="text-xs text-gray-500 mt-1"><?= date('M d, Y', strtotime($user['created_at'])) ?></div>
-            </div>
-          </div>
-        <?php endforeach; ?>
       </div>
-      <a href="<?= BASE_URL ?: '/' ?>admin/manage-users.php" class="mt-4 block text-center text-blue-600 hover:text-blue-700 font-semibold">
-        View All Users <i class="fas fa-arrow-right ml-1"></i>
-      </a>
-    </div>
-
-    <!-- Recent Rentals -->
-    <div class="bg-white rounded-2xl shadow-lg p-6">
-      <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
-        <i class="fas fa-clock text-green-600 mr-3"></i>Recent Rentals
-      </h3>
-      <div class="space-y-3">
-        <?php foreach ($recentRentals as $rental): ?>
-          <div class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-            <div class="flex items-center justify-between mb-2">
-              <div class="font-semibold text-gray-900"><?= htmlspecialchars($rental['product_name']) ?></div>
-              <span class="text-sm font-bold text-green-600">₹<?= number_format($rental['total_amount'], 2) ?></span>
-            </div>
-            <div class="flex items-center justify-between text-sm text-gray-600">
-              <div>
-                <i class="fas fa-user mr-1"></i><?= htmlspecialchars($rental['user_name']) ?>
-              </div>
-              <div>
-                <span class="px-2 py-1 bg-<?= $rental['status'] === 'paid' ? 'blue' : ($rental['status'] === 'delivered' ? 'green' : 'purple') ?>-100 text-<?= $rental['status'] === 'paid' ? 'blue' : ($rental['status'] === 'delivered' ? 'green' : 'purple') ?>-800 text-xs font-semibold rounded-full">
-                  <?= strtoupper(htmlspecialchars($rental['status'])) ?>
-                </span>
-              </div>
-            </div>
-            <div class="text-xs text-gray-500 mt-2"><?= date('M d, Y g:i A', strtotime($rental['created_at'])) ?></div>
-          </div>
-        <?php endforeach; ?>
-      </div>
-      <a href="<?= BASE_URL ?: '/' ?>admin/manage-rentals.php" class="mt-4 block text-center text-green-600 hover:text-green-700 font-semibold">
-        View All Rentals <i class="fas fa-arrow-right ml-1"></i>
-      </a>
-    </div>
-  </div>
-
-  <!-- Category Statistics -->
-  <div class="bg-white rounded-2xl shadow-lg p-6 mb-12">
-    <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
-      <i class="fas fa-chart-pie text-purple-600 mr-3"></i>Products by Category
-    </h3>
-    <div class="grid md:grid-cols-3 lg:grid-cols-4 gap-4">
-      <?php foreach ($categoryStats as $cat): ?>
-        <div class="p-4 bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl border border-gray-200">
-          <div class="flex items-center justify-between mb-2">
-            <h4 class="font-bold text-gray-900"><?= htmlspecialchars($cat['category']) ?></h4>
-            <span class="text-2xl font-bold text-orange-600"><?= $cat['count'] ?></span>
-          </div>
-          <div class="text-sm text-gray-600">
-            <i class="fas fa-check-circle text-green-500 mr-1"></i>
-            <?= $cat['available_count'] ?> available
+      
+      <!-- Charts Section -->
+      <div class="grid lg:grid-cols-2 gap-6 mb-8">
+        <!-- Product Distribution Chart -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Product Distribution</h3>
+          <div style="height: 300px; position: relative;">
+            <canvas id="productChart"></canvas>
           </div>
         </div>
-      <?php endforeach; ?>
+        
+        <!-- Top Products by Revenue -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-900">Top Products by Revenue</h3>
+            <span class="text-sm text-gray-500">Revenue by Product (Top 5)</span>
+          </div>
+          <div style="height: 300px; position: relative;">
+            <canvas id="revenueChart"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Quick Actions -->
+      <div class="bg-white rounded-xl shadow-lg p-6">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <a href="<?= BASE_URL ?: '/' ?>admin/manage-users.php?action=create" class="flex flex-col items-center justify-center p-6 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all border-2 border-blue-200">
+            <i class="fas fa-user-plus text-3xl text-blue-600 mb-3"></i>
+            <span class="font-semibold text-gray-900">Add User</span>
+          </a>
+          <a href="<?= BASE_URL ?: '/' ?>admin/manage-products.php?action=create" class="flex flex-col items-center justify-center p-6 bg-orange-50 hover:bg-orange-100 rounded-xl transition-all border-2 border-orange-200">
+            <i class="fas fa-plus-circle text-3xl text-orange-600 mb-3"></i>
+            <span class="font-semibold text-gray-900">Add Product</span>
+          </a>
+          <a href="<?= BASE_URL ?: '/' ?>admin/manage-rentals.php" class="flex flex-col items-center justify-center p-6 bg-green-50 hover:bg-green-100 rounded-xl transition-all border-2 border-green-200">
+            <i class="fas fa-list text-3xl text-green-600 mb-3"></i>
+            <span class="font-semibold text-gray-900">View Rentals</span>
+          </a>
+          <a href="<?= BASE_URL ?: '/' ?>index.php" class="flex flex-col items-center justify-center p-6 bg-purple-50 hover:bg-purple-100 rounded-xl transition-all border-2 border-purple-200">
+            <i class="fas fa-globe text-3xl text-purple-600 mb-3"></i>
+            <span class="font-semibold text-gray-900">View Website</span>
+          </a>
+        </div>
+      </div>
+      
     </div>
-  </div>
-
-  <!-- Quick Actions -->
-  <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-8 text-center">
-    <h3 class="text-2xl font-bold text-gray-900 mb-4">Quick Actions</h3>
-    <div class="flex flex-wrap justify-center gap-4">
-      <a href="<?= BASE_URL ?: '/' ?>admin/manage-users.php?action=create" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all">
-        <i class="fas fa-user-plus mr-2"></i>Add New User
-      </a>
-      <a href="<?= BASE_URL ?: '/' ?>admin/manage-products.php?action=create" class="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-lg transition-all">
-        <i class="fas fa-plus-circle mr-2"></i>Add New Product
-      </a>
-      <a href="<?= BASE_URL ?: '/' ?>index.php" class="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-xl shadow-lg transition-all">
-        <i class="fas fa-home mr-2"></i>View Website
-      </a>
-    </div>
-  </div>
+  </main>
+  
 </div>
 
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+<script>
+// Product Distribution Chart
+const productCtx = document.getElementById('productChart').getContext('2d');
+new Chart(productCtx, {
+  type: 'doughnut',
+  data: {
+    labels: <?= json_encode(array_column($categoryStats, 'category')) ?>,
+    datasets: [{
+      data: <?= json_encode(array_column($categoryStats, 'count')) ?>,
+      backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444']
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom' }
+    }
+  }
+});
+
+// Top Products Revenue Chart
+const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+new Chart(revenueCtx, {
+  type: 'bar',
+  data: {
+    labels: <?= json_encode(array_column($topProducts, 'name')) ?>,
+    datasets: [{
+      label: 'Revenue (₹)',
+      data: <?= json_encode(array_column($topProducts, 'revenue')) ?>,
+      backgroundColor: '#F59E0B',
+      borderRadius: 8
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false }
+    },
+    scales: {
+      y: { beginAtZero: true }
+    }
+  }
+});
+</script>
+
+</body>
+</html>

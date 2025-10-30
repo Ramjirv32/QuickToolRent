@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $message = trim($_POST['message'] ?? '');
   
   if ($name && $email && $subject && $message) {
-    // In production, send email here
+   
     $success = 'Thank you for contacting us! We will get back to you within 24 hours.';
   } else {
     $error = 'Please fill in all fields.';

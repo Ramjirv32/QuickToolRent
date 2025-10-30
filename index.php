@@ -12,6 +12,7 @@ $categories_stmt = $pdo->query("
   WHERE status = 'available' 
   GROUP BY category
 ");
+
 $categories = $categories_stmt->fetchAll();
 
 // Simple search by name/description and category filter
@@ -37,7 +38,8 @@ if ($q !== '') {
   $params[':q'] = '%' . $q . '%';
 }
 
-$sql .= " ORDER BY p.created_at DESC";
+
+$sql .= " ORDER BY p.created_at DESC LIMIT 12";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $products = $stmt->fetchAll();
@@ -64,7 +66,7 @@ $category_icons = [
 ];
 ?>
 
-<!-- Hero Banner Section -->
+
 <section class="mb-12 relative overflow-hidden rounded-2xl shadow-2xl" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
   <div class="absolute inset-0 opacity-10">
     <img src="https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=1600" alt="Tools Background" class="w-full h-full object-cover">
@@ -142,7 +144,7 @@ $category_icons = [
     </button>
   </div>
 
-  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 px-4 md:px-8">
     <?php 
     $display_categories = [
       ['name' => 'Power Tools', 'icon' => 'fas fa-screwdriver', 'image' => 'https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=400'],
@@ -157,7 +159,18 @@ $category_icons = [
       ['name' => 'Camera & Lenses', 'icon' => 'fas fa-camera', 'image' => 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400'],
       ['name' => 'Construction Tools', 'icon' => 'fas fa-hard-hat', 'image' => 'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=400'],
       ['name' => 'Garden Tools', 'icon' => 'fas fa-seedling', 'image' => 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400'],
+      ['name' => 'Painting Equipment', 'icon' => 'fas fa-paint-roller', 'image' => 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=400'],
+      ['name' => 'Cleaning Equipment', 'icon' => 'fas fa-broom', 'image' => 'https://images.unsplash.com/photo-1563453392212-326f5e854473?w=400'],
+      ['name' => 'Welding Equipment', 'icon' => 'fas fa-fire', 'image' => 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=400'],
+      ['name' => 'Plumbing Tools', 'icon' => 'fas fa-wrench', 'image' => 'https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?w=400'],
+      ['name' => 'Electrical Tools', 'icon' => 'fas fa-bolt', 'image' => 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400'],
+      ['name' => 'Woodworking Tools', 'icon' => 'fas fa-hammer', 'image' => 'https://images.unsplash.com/photo-1551431009-a802eeec77b1?w=400'],
+      ['name' => 'Safety Equipment', 'icon' => 'fas fa-hard-hat', 'image' => 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400'],
+      ['name' => 'Automotive Tools', 'icon' => 'fas fa-car', 'image' => 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400'],
     ];
+    
+    // Limit to 20 categories
+    $display_categories = array_slice($display_categories, 0, 20);
     
     foreach ($display_categories as $cat): ?>
       <a href="<?= BASE_URL ?: '/' ?>category.php?category=<?= urlencode($cat['name']) ?>" class="category-card bg-white rounded-xl shadow-md hover:shadow-2xl overflow-hidden cursor-pointer border border-gray-100 block transition-all duration-300 transform hover:-translate-y-2">
@@ -180,7 +193,7 @@ $category_icons = [
 </section>
 
 <!-- Featured Products Section -->
-<section class="mb-16">
+<section class="mb-16 px-4 md:px-8">
   <div class="flex items-center justify-between mb-8">
     <div>
       <h2 class="text-3xl font-bold text-gray-900">

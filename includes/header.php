@@ -102,10 +102,57 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
           
           <!-- Desktop Navigation -->
           <ul class="hidden lg:flex items-center space-x-1">
-            <li>
-              <a class="px-4 py-2 text-gray-700 hover:text-orange-600 font-medium transition-colors flex items-center" href="<?= BASE_URL ?: '/' ?>index.php">
+            <li class="relative group">
+              <button class="px-4 py-2 text-gray-700 hover:text-orange-600 font-medium transition-colors flex items-center">
                 <i class="fas fa-search mr-2"></i> Browse Tools
-              </a>
+                <i class="fas fa-chevron-down ml-2 text-xs"></i>
+              </button>
+              <!-- Dropdown Menu -->
+              <div class="absolute left-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div class="py-2">
+                  <a href="<?= BASE_URL ?: '/' ?>index.php" class="flex items-center px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                    <i class="fas fa-th-large w-5 mr-3 text-orange-500"></i>
+                    <span class="font-medium">All Products</span>
+                  </a>
+                  <div class="border-t border-gray-100 my-2"></div>
+                  <a href="<?= BASE_URL ?: '/' ?>category.php?category=Power+Tools" class="flex items-center px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                    <i class="fas fa-screwdriver w-5 mr-3 text-blue-500"></i>
+                    <span>Power Tools</span>
+                  </a>
+                  <a href="<?= BASE_URL ?: '/' ?>category.php?category=Ladders" class="flex items-center px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                    <i class="fas fa-sort-amount-up w-5 mr-3 text-green-500"></i>
+                    <span>Ladders</span>
+                  </a>
+                  <a href="<?= BASE_URL ?: '/' ?>category.php?category=Hand+Tools" class="flex items-center px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                    <i class="fas fa-hammer w-5 mr-3 text-red-500"></i>
+                    <span>Hand Tools</span>
+                  </a>
+                  <a href="<?= BASE_URL ?: '/' ?>category.php?category=Garden+Tools" class="flex items-center px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                    <i class="fas fa-seedling w-5 mr-3 text-green-600"></i>
+                    <span>Garden Tools</span>
+                  </a>
+                  <a href="<?= BASE_URL ?: '/' ?>category.php?category=Electronics" class="flex items-center px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                    <i class="fas fa-plug w-5 mr-3 text-yellow-500"></i>
+                    <span>Electronics</span>
+                  </a>
+                  <a href="<?= BASE_URL ?: '/' ?>category.php?category=Cleaning+Equipment" class="flex items-center px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                    <i class="fas fa-broom w-5 mr-3 text-purple-500"></i>
+                    <span>Cleaning Equipment</span>
+                  </a>
+                  <a href="<?= BASE_URL ?: '/' ?>category.php?category=Safety+Gear" class="flex items-center px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                    <i class="fas fa-hard-hat w-5 mr-3 text-orange-500"></i>
+                    <span>Safety Gear</span>
+                  </a>
+                  <a href="<?= BASE_URL ?: '/' ?>category.php?category=Construction" class="flex items-center px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                    <i class="fas fa-building w-5 mr-3 text-gray-600"></i>
+                    <span>Construction</span>
+                  </a>
+                  <a href="<?= BASE_URL ?: '/' ?>category.php?category=Painting" class="flex items-center px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                    <i class="fas fa-paint-roller w-5 mr-3 text-pink-500"></i>
+                    <span>Painting</span>
+                  </a>
+                </div>
+              </div>
             </li>
             <li>
               <a class="px-4 py-2 text-gray-700 hover:text-orange-600 font-medium transition-colors flex items-center" href="<?= BASE_URL ?: '/' ?>about.php">
@@ -131,10 +178,10 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
                   </a>
                 </li>
               <?php endif; ?>
-              <?php if (($_SESSION['user']['role'] ?? '') === 'admin'): ?>
+              <?php if (($_SESSION['user']['email'] ?? '') === 'admin@example.com'): ?>
                 <li>
-                  <a class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all flex items-center" href="<?= BASE_URL ?: '/' ?>admin/index.php">
-                    <i class="fas fa-chart-line mr-2"></i> Admin Panel
+                  <a class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all flex items-center" href="<?= BASE_URL ?: '/' ?>admin/dashboard.php">
+                    <i class="fas fa-shield-alt mr-2"></i> Admin Panel
                   </a>
                 </li>
               <?php endif; ?>

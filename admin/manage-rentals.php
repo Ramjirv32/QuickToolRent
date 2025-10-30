@@ -152,7 +152,7 @@ $rentals = $stmt->fetchAll();
 include __DIR__ . '/../includes/header.php';
 ?>
 
-<div class="max-w-7xl mx-auto">
+<div class="max-w-7xl mx-auto px-4 md:px-8 py-8">
   <!-- Header -->
   <div class="mb-8">
     <nav class="text-sm text-gray-600 mb-4">
